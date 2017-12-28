@@ -31,6 +31,7 @@ import com.google.gson.reflect.TypeToken;
 import io.github.poqdavid.virtualtool.VirtualTool;
 import org.apache.commons.io.FileUtils;
 import org.spongepowered.api.entity.living.player.Player;
+import org.spongepowered.api.event.item.inventory.ChangeInventoryEvent;
 import org.spongepowered.api.event.item.inventory.ClickInventoryEvent;
 import org.spongepowered.api.event.item.inventory.InteractInventoryEvent;
 import org.spongepowered.api.item.ItemTypes;
@@ -105,7 +106,7 @@ public class Backpack {
         this.inventory = Inventory.builder()
                 .of(InventoryArchetypes.DOUBLE_CHEST)
                 .property(InventoryTitle.PROPERTY_NAME, InventoryTitle.of(Text.of(this.backpacktitle_text)))
-                .property("inventorydimension", InventoryDimension.of(9, this.size))
+                .property(InventoryDimension.PROPERTY_NAME, InventoryDimension.of(9, this.size))
                 .listener(ClickInventoryEvent.class, (ClickInventoryEvent event) -> {
                     if (saveit) {
                         this.savebackpack(this.player_args, this.loadStacks(this.player_args, this.inventory), this.vt);
@@ -115,6 +116,7 @@ public class Backpack {
                 })
                 .listener(InteractInventoryEvent.Close.class, event -> {
                     if (saveit) {
+                        this.savebackpack(this.player_args, this.loadStacks(this.player_args, this.inventory), this.vt);
                         Tools.unlockbackpack(this.player_args, false, this.vt);
                     }
                 })
@@ -133,13 +135,16 @@ public class Backpack {
     }
 
     private Map<String, String> loadStacks(Player player, Inventory backpack) {
-        for (SlotPos slotp : this.itemspos) {
-            if (backpack.query(slotp).size() > 0) {
-                if (!backpack.query(slotp).peek().get().getItem().equals(ItemTypes.NONE)) {
+        // TODO change back to slot pos query if sponge api works again
+        int counter = 0;
+        for (Inventory slot : backpack.slots()) {
+            SlotPos slotp = this.itemspos.get(counter++);
+            if (slot.size() > 0) {
+                if (!slot.peek().get().getItem().equals(ItemTypes.NONE)) {
                     try {
-                        if (backpack.query(slotp).peek().isPresent()) {
+                        if (slot.peek().isPresent()) {
 
-                            this.items.put(slotp.getX() + "," + slotp.getY(), Tools.ItemStackToBase64(backpack.query(slotp).peek().get()));
+                            this.items.put(slotp.getX() + "," + slotp.getY(), Tools.ItemStackToBase64(slot.peek().get()));
                         }
                     } catch (Exception e) {
                         VirtualTool.getInstance().getLogger().error("Failed to load a stack data from inventory for this user: " + player.getName() + " SlotPos: " + slotp.getX() + "X," + slotp.getY() + "Y");
